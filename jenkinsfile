@@ -1,0 +1,113 @@
+pipeline
+{
+    agent any
+    stages
+    {
+        stage('ContinuousDownload')
+        {
+            steps
+            {
+                script
+                {
+                    try
+                    {
+                        git 'https://github.com/intelliqittrainings/maven.git'
+                    }    
+                    catch(Exception e1)
+                    {
+                        mail bcc: '', body: 'Jenkins is unable to download the development code from the remote github', cc: '', from: '', replyTo: '', subject: 'Download failed', to: 'git.admin@gmail.com'
+                        exit(1)
+                    }
+                }    
+                
+            }
+        
+        }
+        stage('ContinuousBuild')
+        {
+            steps
+            {
+                script
+                {
+                    try
+                    {
+                        sh 'mvn package' 
+                    }
+                    catch(Exception e2)
+                    {
+                    mail bcc: '', body: 'Jenkins is unable to create an artifact from  the code', cc: '', from: '', replyTo: '', subject: 'Build failed', to: 'git.admin@gmail.com'
+                    exit(1)
+                    }
+                }
+               
+            }
+        
+        }
+        stage('ContinuousDeployment')
+        {
+            steps
+            {
+                script
+                {
+                    try
+                    {
+                        deploy adapters: [tomcat9(credentialsId: 'ad7320e5-afcc-4292-ac30-011905d49893', path: '', url: 'http://172.31.84.79:8080')], contextPath: 'test1', war: '**/*.war'    
+                    }
+                    catch(Exception e3)
+                    {
+                        mail bcc: '', body: 'Jenkins is unable to deploy into tomcat on the QAServer', cc: '', from: '', replyTo: '', subject: 'Deployment failed', to: 'middleware.team@gmail.com'
+                        exit(1)
+                    }
+                }
+                
+            }
+        
+        }
+        stage('ContinuousTesting')
+        {
+            steps
+            {
+                script
+                {
+                    try
+                    {
+                        git 'https://github.com/intelliqittrainings/FunctionalTesting.git'
+                        sh 'java -jar /home/ubuntu/.jenkins/workspace/Declarative/testing.jar'
+                    }
+                    catch(Exception e4)
+                    {
+                        mail bcc: '', body: 'Selenium test scripts are in the failure status', cc: '', from: '', replyTo: '', subject: 'Testing failed', to: 'qa.team@gmail.com'
+                        exit(1)
+                    }
+                }
+                
+                
+            }
+        
+        }
+        stage('ContinuousDelivery')
+        {
+            steps
+            {
+                script
+                {
+                    try
+                    {
+                       deploy adapters: [tomcat9(credentialsId: 'ad7320e5-afcc-4292-ac30-011905d49893', path: '', url: 'http://172.31.87.206:8080')], contextPath: 'prod1', war: '**/*.war' 
+                    }
+                    catch(Exception e5)
+                    {
+                        mail bcc: '', body: 'Jenkins is unable to deploy on to the prodserver', cc: '', from: '', replyTo: '', subject: 'Delivery failed', to: 'Delivery.team@gmail.com'
+                    }
+                }
+               
+            }
+        
+        }
+        
+        
+        
+        
+        
+    }
+}
